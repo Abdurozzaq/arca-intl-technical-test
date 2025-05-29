@@ -20,7 +20,7 @@
 
 -   Menyediakan API RESTful
     
--   Menangani logika bisnis (termasuk perhitungan remunerasi jika ada)
+-   Menangani logika bisnis
     
 -   Berkomunikasi dengan database
     
@@ -153,29 +153,3 @@ Frontend ← (HTTP Response) ← Backend ← (Data) ← Database
         
     -   Tampilkan notifikasi sukses
         
-
-----------
-
-### 3. Alur Khusus Perhitungan Remunerasi (Work Log)
-
-1.  **Frontend:**
-    
-    -   User input data work log (jam kerja, tarif, dll)
-        
-    -   POST `/api/work-logs`
-        
-2.  **Backend:**
-    
-    -   Hitung remunerasi:
-        
-        -   Jika kolaborator: prorata berdasarkan jam kerja
-            
-        -   Total = (jam kerja × tarif) + biaya tambahan
-            
-    -   Simpan data dan total remunerasi ke database
-        
-3.  **Frontend:**
-    
-    -   Terima response termasuk `total_remuneration`
-        
-    -   Tampilkan detail perhitungan ke user
