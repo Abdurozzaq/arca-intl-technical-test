@@ -120,6 +120,10 @@ export default function EmployeeDetail() {
                                     <p className="text-sm text-gray-500">Average Hourly Rate</p>
                                     <p className="font-medium">${statistics.average_hourly_rate.toFixed(2)}</p>
                                 </div>
+                                <div>
+                                    <p className="text-sm text-gray-500">Total Remuneration As Collaborator</p>
+                                    <p className="font-medium">${statistics.collaborator_remuneration.toFixed(2)}</p>
+                                </div>
                             </div>
                         </div>
                     )}

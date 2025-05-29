@@ -13,6 +13,13 @@ export default function CreateWorkLog() {
         date: '',
         hours_spent: '',
         task_description: '',
+        additional_charges: '0',
+        collaborators: []
+    });
+
+    const [collaboratorInput, setCollaboratorInput] = useState({
+        employee_id: '',
+        hours_spent: ''
     });
 
     const [employees, setEmployees] = useState([]);
@@ -41,12 +48,15 @@ export default function CreateWorkLog() {
     useEffect(() => {
         const fetchEmployeeId = async () => {
             const employeeId = searchParams.get('employee_id');
-            setForm({
-                employee_id: employeeId,
+            setForm(prev => ({
+                ...prev,
+                employee_id: employeeId || '',
                 date: '',
                 hours_spent: '',
                 task_description: '',
-            })
+                additional_charges: '0',
+                collaborators: []
+            }));
         };
 
         fetchEmployeeId();
@@ -57,19 +67,73 @@ export default function CreateWorkLog() {
         setForm((prev) => ({...prev, [name]: value}));
     };
 
+    const handleCollaboratorChange = (e) => {
+        const {name, value} = e.target;
+        setCollaboratorInput((prev) => ({...prev, [name]: value}));
+    };
+
+    const addCollaborator = () => {
+        if (!collaboratorInput.employee_id || !collaboratorInput.hours_spent) {
+            setError('Please select employee and enter hours for collaborator');
+            return;
+        }
+
+        const employee = employees.find(e => e.id == collaboratorInput.employee_id);
+
+        setForm(prev => ({
+            ...prev,
+            collaborators: [
+                ...prev.collaborators,
+                {
+                    employee_id: collaboratorInput.employee_id,
+                    hours_spent: collaboratorInput.hours_spent,
+                    name: employee.name
+                }
+            ]
+        }));
+
+        setCollaboratorInput({
+            employee_id: '',
+            hours_spent: ''
+        });
+    };
+
+    const removeCollaborator = (index) => {
+        setForm(prev => ({
+            ...prev,
+            collaborators: prev.collaborators.filter((_, i) => i !== index)
+        }));
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError(null);
+
         try {
-            await WorkLogApi.create(form);
+            const payload = {
+                ...form,
+                hours_spent: parseFloat(form.hours_spent),
+                additional_charges: parseFloat(form.additional_charges || '0'),
+                collaborators: form.collaborators.map(c => ({
+                    employee_id: c.employee_id,
+                    hours_spent: parseFloat(c.hours_spent)
+                }))
+            };
+
+            await WorkLogApi.create(payload);
             router.push('/work-logs');
         } catch (err) {
-            setError(err.message);
+            setError(err.response?.data?.message || err.message);
         } finally {
             setLoading(false);
         }
     };
+
+    const availableEmployees = employees.filter(emp =>
+        emp.id !== form.employee_id &&
+        !form.collaborators.some(c => c.employee_id == emp.id)
+    );
 
     return (
         <Layout>
@@ -127,11 +191,26 @@ export default function CreateWorkLog() {
                         <input
                             type="number"
                             step="0.1"
+                            min="0.1"
+                            max="24"
                             name="hours_spent"
                             value={form.hours_spent}
                             onChange={handleChange}
                             className="w-full border px-4 py-2 rounded"
                             required
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block font-medium">Additional Charges</label>
+                        <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            name="additional_charges"
+                            value={form.additional_charges}
+                            onChange={handleChange}
+                            className="w-full border px-4 py-2 rounded"
                         />
                     </div>
 
@@ -147,7 +226,79 @@ export default function CreateWorkLog() {
                         ></textarea>
                     </div>
 
-                    <div className="flex justify-end">
+                    <div className="border-t pt-4 mt-4">
+                        <h2 className="text-lg font-medium mb-3">Collaborators</h2>
+
+                        {form.collaborators.length > 0 && (
+                            <div className="mb-4 space-y-2">
+                                {form.collaborators.map((collaborator, index) => (
+                                    <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                                        <div>
+                                            <span className="font-medium">
+                                                {employees.find(e => e.id == collaborator.employee_id)?.name || 'Unknown'}
+                                            </span>
+                                            <span className="ml-2 text-gray-600">
+                                                ({collaborator.hours_spent} hours)
+                                            </span>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => removeCollaborator(index)}
+                                            className="text-red-500 hover:text-red-700"
+                                        >
+                                            Remove
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        <div className="flex space-x-2">
+                            <select
+                                name="employee_id"
+                                value={collaboratorInput.employee_id}
+                                onChange={handleCollaboratorChange}
+                                className="flex-1 border px-3 py-2 rounded"
+                                disabled={availableEmployees.length === 0}
+                            >
+                                <option value="">Select collaborator</option>
+                                {availableEmployees.map((employee) => (
+                                    <option key={employee.id} value={employee.id}>
+                                        {employee.name}
+                                    </option>
+                                ))}
+                            </select>
+
+                            <input
+                                type="number"
+                                step="0.1"
+                                min="0.1"
+                                name="hours_spent"
+                                value={collaboratorInput.hours_spent}
+                                onChange={handleCollaboratorChange}
+                                placeholder="Hours"
+                                className="w-24 border px-3 py-2 rounded"
+                            />
+
+                            <button
+                                type="button"
+                                onClick={addCollaborator}
+                                className="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded disabled:opacity-50"
+                                disabled={!collaboratorInput.employee_id || !collaboratorInput.hours_spent}
+                            >
+                                Add
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="flex justify-end pt-4">
+                        <button
+                            type="button"
+                            onClick={() => router.push('/work-logs')}
+                            className="mr-4 bg-gray-200 hover:bg-gray-300 px-6 py-2 rounded"
+                        >
+                            Cancel
+                        </button>
                         <button
                             type="submit"
                             className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded disabled:opacity-50"
