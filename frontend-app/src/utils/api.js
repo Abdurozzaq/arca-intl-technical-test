@@ -1,5 +1,5 @@
 // utils/api.js
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = 'https://betest.notesure.web.id/api';
 
 // Helper function to handle API requests
 const fetchApi = async (endpoint, options = {}) => {
