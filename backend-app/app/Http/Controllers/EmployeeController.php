@@ -191,17 +191,35 @@ class EmployeeController extends Controller
         }
 
         $totalHours = $employee->workLogs->sum('hours_spent');
-        $totalRemuneration = $employee->workLogs->reduce(function ($carry, $workLog) {
+
+        // Total dari workLogs yang dimiliki sendiri
+        $ownRemuneration = $employee->workLogs->reduce(function ($carry, $workLog) {
             return $carry + $workLog->calculateTotalRemuneration();
         }, 0);
+
+        // ✅ Ambil semua worklog di mana employee jadi collaborator
+        $collabLogs = \App\Models\WorkLog::all()->filter(function ($log) use ($employee) {
+            return collect($log->collaborators)->contains(function ($collab) use ($employee) {
+                return strval($collab['employee_id']) === strval($employee->id);
+            });
+        });
+
+        // Total remuneration dari kontribusi sebagai collaborator
+        $collabRemuneration = $collabLogs->reduce(function ($carry, $log) use ($employee) {
+            return $carry + $log->getCollaboratorRemuneration($employee->id);
+        }, 0);
+
+        $totalRemuneration = $ownRemuneration + $collabRemuneration;
 
         return response()->json([
             'success' => true,
             'data' => [
                 'total_hours' => $totalHours,
                 'total_remuneration' => $totalRemuneration,
-                'average_hourly_rate' => $totalHours > 0 ? $totalRemuneration / $totalHours : 0
+                'average_hourly_rate' => $totalHours > 0 ? round($ownRemuneration / $totalHours, 2) : 0,
+                'collaborator_remuneration' => $collabRemuneration,
             ]
         ]);
     }
+
 }
