@@ -1,0 +1,45 @@
+## **Integrasi Perhitungan Remunerasi**
+
+### Tujuan:
+
+-   Menghitung total pembayaran kepada karyawan berdasarkan data work log.
+    
+
+### Lokasi Logika:
+
+-   **Di Backend (Laravel)**, pada controller atau service layer untuk endpoint `/api/work-logs`.
+    
+
+### Alur Perhitungan:
+
+1.  **Input dari Frontend**:
+    
+    -   Employee ID
+        
+    -   Tanggal kerja
+        
+    -   Jam kerja (start–end atau jumlah jam)
+        
+    -   Tarif dasar
+        
+    -   Biaya tambahan (jika ada)
+
+
+2. **Code Total Remunerasi**:
+
+```
+public function calculateTotalRemuneration()
+    {
+        // Logika perhitungan remunerasi
+        $basePayment = $this->hours_spent * $this->hourly_rate;
+        $totalPayment = $basePayment + $this->additional_charges;
+
+        if (!empty($this->collaborators)) {
+            $totalHours = $this->hours_spent + collect($this->collaborators)->sum('hours_spent');
+            $proratedRatio = $this->hours_spent / $totalHours;
+            $totalPayment = $totalPayment * $proratedRatio;
+        }
+
+        return $totalPayment;
+    }
+```
